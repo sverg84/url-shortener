@@ -1,8 +1,7 @@
-from crud import get_url_by_key
+from crud import create_db_url, get_url_by_key
 from endpoints import HomeEndpoint
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, RedirectResponse
-from keygen import random_key, unique_random_key
 from piccolo_admin.endpoints import create_admin
 from piccolo_api.crud.serializers import create_pydantic_model
 from piccolo_app import APP_CONFIG
@@ -49,20 +48,7 @@ async def forward_to_target_url(url_key: str):
 
 @app.post("/urls/", response_model=URLModelOut)
 async def create_url(url_model: URLModelIn):
-    url_model_as_dict: Dict = url_model.dict()
-
-    key_from_model: str | None = url_model_as_dict.get("key")
-    secret_key_from_model: str | None = url_model_as_dict.get("secret_key")
-
-    key: str = unique_random_key(length=8) if key_from_model is None else key_from_model
-    url_model_as_dict.update({
-        "key": key,
-        "secret_key": (
-            f"{key}_{random_key(length=10)}"
-            if secret_key_from_model is None else secret_key_from_model
-        )
-    })
-    url = URL(**url_model_as_dict)
+    url = URL(**create_db_url(url_model))
     await url.save()
     return url.to_dict()
 
