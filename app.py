@@ -1,4 +1,3 @@
-from crud import create_db_url, get_url_by_key
 from endpoints import HomeEndpoint
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -41,6 +40,7 @@ async def urls():
 
 @app.get("/{url_key}")
 async def forward_to_target_url(url_key: str):
+    from crud import get_url_by_key
     if db_url := await get_url_by_key(url_key) is not None:
         return RedirectResponse(db_url)
     return JSONResponse({}, status_code=404)
@@ -48,7 +48,8 @@ async def forward_to_target_url(url_key: str):
 
 @app.post("/urls/", response_model=URLModelOut)
 async def create_url(url_model: URLModelIn):
-    url = URL(**create_db_url(url_model))
+    from crud import create_db_url
+    url = URL(**(await create_db_url(url_model)))
     await url.save()
     return url.to_dict()
 
