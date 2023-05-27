@@ -10,6 +10,10 @@ async def create_db_url(url_model: URLModelIn) -> Dict:
     key_from_model: str | None = url_model_as_dict.get("key")
     secret_key_from_model: str | None = url_model_as_dict.get("secret_key")
 
+    for key in ["is_active", "clicks"]:
+        if key in url_model_as_dict:
+            url_model_as_dict.pop(key)
+
     key: str = await unique_random_key(length=8) if key_from_model is None else key_from_model
     url_model_as_dict.update({
         "key": key,

@@ -41,7 +41,7 @@ async def urls():
 @app.get("/{url_key}")
 async def forward_to_target_url(url_key: str):
     from crud import get_url_by_key
-    if db_url := await get_url_by_key(url_key) is not None:
+    if (db_url := await get_url_by_key(url_key)) is not None:
         return RedirectResponse(db_url)
     return JSONResponse({}, status_code=404)
 
