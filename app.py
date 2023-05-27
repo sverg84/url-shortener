@@ -1,16 +1,16 @@
 from crud import get_url_by_key
+from endpoints import HomeEndpoint
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, RedirectResponse
-from keygen import random_key
+from keygen import random_key, unique_random_key
 from piccolo_admin.endpoints import create_admin
 from piccolo_api.crud.serializers import create_pydantic_model
+from piccolo_app import APP_CONFIG
 from piccolo.engine import engine_finder
 from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
-from typing import Dict, List
-from endpoints import HomeEndpoint
-from piccolo_app import APP_CONFIG
 from tables import URL
+from typing import Dict, List
 
 
 app = FastAPI(
@@ -50,9 +50,17 @@ async def forward_to_target_url(url_key: str):
 @app.post("/urls/", response_model=URLModelOut)
 async def create_url(url_model: URLModelIn):
     url_model_as_dict: Dict = url_model.dict()
+
+    key_from_model: str | None = url_model_as_dict.get("key")
+    secret_key_from_model: str | None = url_model_as_dict.get("secret_key")
+
+    key: str = unique_random_key(length=8) if key_from_model is None else key_from_model
     url_model_as_dict.update({
-        "key": random_key(url_model_as_dict, "key", 6),
-        "secret_key": random_key(url_model_as_dict, "secret_key", 10)
+        "key": key,
+        "secret_key": (
+            f"{key}_{random_key(length=10)}"
+            if secret_key_from_model is None else secret_key_from_model
+        )
     })
     url = URL(**url_model_as_dict)
     await url.save()
