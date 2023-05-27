@@ -1,14 +1,13 @@
-import typing as t
-import json
-
+from crud import get_url_by_key
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from keygen import random_key
 from piccolo_admin.endpoints import create_admin
 from piccolo_api.crud.serializers import create_pydantic_model
 from piccolo.engine import engine_finder
 from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
-
+from typing import Dict, List
 from endpoints import HomeEndpoint
 from piccolo_app import APP_CONFIG
 from tables import URL
@@ -30,21 +29,32 @@ app = FastAPI(
 )
 
 
-URLModelIn: t.Dict = create_pydantic_model(table=URL, model_name="URLModelIn")
-URLModelOut: t.Dict = create_pydantic_model(
+URLModelIn: Dict = create_pydantic_model(table=URL, model_name="URLModelIn")
+URLModelOut: Dict = create_pydantic_model(
     table=URL, include_default_columns=True, model_name="URLModelOut"
 )
 
 
-@app.get("/urls/", response_model=t.List[URLModelOut])
+@app.get("/urls/", response_model=List[URLModelOut])
 async def urls():
     return await URL.select().order_by(URL.id)
 
 
+@app.get("/{url_key}")
+async def forward_to_target_url(url_key: str):
+    if db_url := await get_url_by_key(url_key) is not None:
+        return RedirectResponse(db_url)
+    return JSONResponse({}, status_code=404)
+
+
 @app.post("/urls/", response_model=URLModelOut)
 async def create_url(url_model: URLModelIn):
-    print(json.dumps(url_model.dict(), indent=4))
-    url = URL(**url_model.dict())
+    url_model_as_dict: Dict = url_model.dict()
+    url_model_as_dict.update({
+        "key": random_key(url_model_as_dict, "key", 6),
+        "secret_key": random_key(url_model_as_dict, "secret_key", 10)
+    })
+    url = URL(**url_model_as_dict)
     await url.save()
     return url.to_dict()
 
