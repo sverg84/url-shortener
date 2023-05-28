@@ -1,19 +1,34 @@
 import "chrome-types";
-import $ from "jquery";
-
-console.log("ugh");
+import "fetch";
 
 async function shortenURL(): Promise<void> {
-    await $.ajax({
-        data: {
-            target_url: document.location.href
+    const response: Response = await fetch("http://127.0.0.1:8000/urls/", {
+        method: "POST",
+        mode: "cors",
+        cache: "no-cache",
+        credentials: "same-origin",
+        headers: {
+            "Content-Type": "application/json",
         },
-        dataType: "json",
-        success: (result) => {
-            console.log(result);
-        },
-        type: "POST",
-        url: "http://127.0.0.1:8000/urls/",
+        redirect: "follow",
+        referrerPolicy: "no-referrer",
+        body: JSON.stringify({target_url: document.location.href}),
+    });
+
+    if (!response.ok) {
+        throw new Error("ugh");
+    }
+
+    const data: Map<string, string> = await response.json();
+    const shortenedURL: string = `http://127.0.0.1:8000/${data.get("key")}`;
+
+    await navigator.clipboard.writeText(shortenedURL);
+
+    chrome.notifications.create(undefined, {
+        message: "This is a test",
+        silent: true,
+        title: "Title",
+        type: "basic"
     });
 }
 
@@ -26,4 +41,4 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 });
 
-chrome.action.onClicked.addListener(async () => {console.log("plep"); await shortenURL();});
+chrome.action.onClicked.addListener(async () => {await shortenURL();});
