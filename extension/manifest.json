@@ -1,0 +1,22 @@
+{
+    "manifest_version": 3,
+    "name": "URL Shortener",
+    "version": "1.0",
+    "description": "Copy a shortened version of the URL to clipboard",
+    "action": {
+        "default_title": "URL Shortener"
+    },
+    "background": [
+        {
+            "service-worker": "scripts/content.js",
+            "persistent": false,
+            "type": "module"
+        }
+    ],
+    "permissions": [
+        "activeTab",
+        "contextMenus",
+        "notifications",
+        "webRequest"
+    ]
+}
