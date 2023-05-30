@@ -1,5 +1,4 @@
 import "chrome-types";
-import "fetch";
 async function shortenURL() {
     const response = await fetch("http://127.0.0.1:8000/urls/", {
         method: "POST",
@@ -11,7 +10,7 @@ async function shortenURL() {
         },
         redirect: "follow",
         referrerPolicy: "no-referrer",
-        body: JSON.stringify({ target_url: document.location.href }),
+        body: JSON.stringify({ target_url: location.href }),
     });
     if (!response.ok) {
         throw new Error("ugh");
@@ -21,7 +20,7 @@ async function shortenURL() {
     await navigator.clipboard.writeText(shortenedURL);
     chrome.notifications.create(undefined, {
         message: "This is a test",
-        silent: true,
+        // silent: true,
         title: "Title",
         type: "basic"
     });
@@ -31,7 +30,7 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         title: "Copy shortened URL to Clipboard",
         contexts: ["all"],
-        onclick: async () => { await shortenURL(); }
+        onclick: shortenURL
     });
 });
-chrome.action.onClicked.addListener(async () => { await shortenURL(); });
+chrome.action.onClicked.addListener(shortenURL);

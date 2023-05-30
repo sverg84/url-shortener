@@ -1,6 +1,7 @@
 static/
 piccolo_migrations/
 templates/
+.DS_Store
 
 # Chrome extension
 node_modules/
