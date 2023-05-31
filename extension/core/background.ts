@@ -1,7 +1,7 @@
-import "chrome-types";
+const extensionURL: string = "http://localhost:8000/";
 
 async function shortenURL(): Promise<void> {
-    const response: Response = await fetch("http://127.0.0.1:8000/urls/", {
+    const response: Response = await fetch(`${extensionURL}urls/`, {
         method: "POST",
         mode: "cors",
         cache: "no-cache",
@@ -11,7 +11,7 @@ async function shortenURL(): Promise<void> {
         },
         redirect: "follow",
         referrerPolicy: "no-referrer",
-        body: JSON.stringify({target_url: location.href}),
+        body: JSON.stringify({target_url: Window.prototype.location.href}),
     });
 
     if (!response.ok) {
@@ -19,11 +19,12 @@ async function shortenURL(): Promise<void> {
     }
 
     const data: Map<string, string> = await response.json();
-    const shortenedURL: string = `http://127.0.0.1:8000/${data.get("key")}`;
+    const shortenedURL: string = `${extensionURL}${data.get("key")}`;
 
     await navigator.clipboard.writeText(shortenedURL);
 
-    chrome.notifications.create(undefined, {
+    chrome.notifications.create('', {
+        iconUrl: "icons/icon-16.png",
         message: "This is a test",
         // silent: true,
         title: "Title",
