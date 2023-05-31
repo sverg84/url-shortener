@@ -1,6 +1,10 @@
 const extensionURL: string = "http://localhost:8000/";
 
-async function shortenURL(): Promise<void> {
+async function clipboard(url: string): Promise<void> {
+    await navigator.clipboard.writeText(url);
+}
+
+async function shortenURL(tab: chrome.tabs.Tab): Promise<string> {
     const response: Response = await fetch(`${extensionURL}urls/`, {
         method: "POST",
         mode: "cors",
@@ -11,34 +15,47 @@ async function shortenURL(): Promise<void> {
         },
         redirect: "follow",
         referrerPolicy: "no-referrer",
-        body: JSON.stringify({target_url: Window.prototype.location.href}),
+        body: JSON.stringify({target_url: tab.url}),
     });
 
     if (!response.ok) {
-        throw new Error("ugh");
+        throw new Error(`${response.status} ${response.statusText}`);
     }
 
-    const data: Map<string, string> = await response.json();
-    const shortenedURL: string = `${extensionURL}${data.get("key")}`;
+    const data: any = await response.json();
+    return `${extensionURL}${data.key}`;
+}
 
-    await navigator.clipboard.writeText(shortenedURL);
+async function onClick(tab: chrome.tabs.Tab): Promise<void> {
+    const shortenedURL: string = await shortenURL(tab);
 
-    chrome.notifications.create('', {
-        iconUrl: "icons/icon-16.png",
-        message: "This is a test",
-        // silent: true,
-        title: "Title",
-        type: "basic"
-    });
+    try {
+        await chrome.scripting.executeScript({
+            args: [shortenedURL],
+            func: clipboard,
+            target: {tabId: tab.id}
+        });
+        chrome.notifications.create({
+            iconUrl: "icons/icon-48.png",
+            message: `${shortenedURL}\n`
+                + "has successfully been copied to your clipboard.",
+            silent: true,
+            title: "Copied Short URL to Clipboard",
+            type: "basic"
+        });
+    } catch {
+        console.warn(`Failed to copy ${shortenedURL} to clipboard.`);
+    }
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-    console.log('eekle');
     chrome.contextMenus.create({
         title: "Copy shortened URL to Clipboard",
         contexts: ["all"],
-        onclick: shortenURL
+        id: "url_shortener"
     });
 });
 
-chrome.action.onClicked.addListener(shortenURL);
+chrome.contextMenus.onClicked.addListener(
+    async (_info, tab) => {await onClick(tab);}
+);
